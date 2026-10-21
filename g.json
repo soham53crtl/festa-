@@ -1,1 +1,0 @@
-{"model":"qwen/qwen3.8-27b","messages":[{"role":"user","content":"Reply with JSON {\"ok\":true}"}],"response_format":{"type":"json_object"}}
