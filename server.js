@@ -2,7 +2,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { validate, buildPlan, enhance } = require('./planner');
+const { handlePlan, MAX_BODY } = require('./handler');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, 'public');
@@ -25,7 +25,7 @@ function send(res, code, body, type = 'application/json; charset=utf-8') {
   res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));
 }
 
-function readBody(req, max = 8192) {
+function readBody(req, max = MAX_BODY) {
   return new Promise((resolve, reject) => {
     let size = 0; const chunks = [];
     req.on('data', (c) => { size += c.length; if (size > max) { reject(new Error('too large')); } else if (size <= max) chunks.push(c); });
@@ -44,11 +44,8 @@ const server = http.createServer(async (req, res) => {
     if (limited(req.socket.remoteAddress)) return send(res, 429, { error: 'Too many requests. Try again in a minute.' });
     let body;
     try { body = JSON.parse(await readBody(req)); } catch { return send(res, 400, { error: 'Send valid JSON under 8 KB.' }); }
-    const { errors, value } = validate(body);
-    if (errors.length) return send(res, 422, { errors });
-    let plan = buildPlan(value);
-    plan = await enhance(plan, value);
-    return send(res, 200, plan);
+    const r = await handlePlan(body);
+    return send(res, r.status, r.body);
   }
   send(res, 404, { error: 'Not found' });
 });

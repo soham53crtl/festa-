@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { validate, buildPlan, mergeAi, enhanceWithGemini, enhanceWithOpenAICompat, enhance, TYPES } = require('../planner');
+const { parseJsonLoose, validate, buildPlan, mergeAi, enhanceWithGemini, enhanceWithOpenAICompat, enhance, TYPES } = require('../planner');
 
 const good = { type: 'wedding', budget: 1000000, guests: 200, date: '2027-02-14', currency: 'INR', city: 'Kolkata', theme: 'Marigold', notes: '' };
 const today = new Date('2026-10-21T00:00:00Z');
@@ -74,4 +74,8 @@ test('Groq/Grok adapter sends bearer auth, merges ideas, and falls back on error
   const bad = async () => ({ ok: false });
   const f = await enhanceWithOpenAICompat(buildPlan(v, today), v, { name: 'groq', url: 'u', apiKey: 'k', model: 'm', fetchImpl: bad });
   assert.equal(f.source, 'rules');
+});
+
+test('parseJsonLoose strips <think> blocks and surrounding prose', () => {
+  assert.deepEqual(parseJsonLoose('<think>hmm {x}</think>Sure! {"ideas":["a"]} done'), { ideas: ['a'] });
 });
