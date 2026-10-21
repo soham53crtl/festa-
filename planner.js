@@ -100,6 +100,13 @@ function mergeAi(plan, ai, source = 'gemini') {
   return plan;
 }
 
+// Models may wrap JSON in prose or <think> blocks; take the first {...} object.
+function parseJsonLoose(text) {
+  const t = String(text).replace(/<think>[\s\S]*?<\/think>/g, '');
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  return JSON.parse(a >= 0 && b > a ? t.slice(a, b + 1) : t);
+}
+
 async function enhanceWithGemini(plan, v, { apiKey, model, fetchImpl = fetch, timeoutMs = 8000 }) {
   if (!apiKey) return plan;
   try {
@@ -111,7 +118,7 @@ async function enhanceWithGemini(plan, v, { apiKey, model, fetchImpl = fetch, ti
     });
     if (!res.ok) return plan;
     const data = await res.json();
-    return mergeAi(plan, JSON.parse(data.candidates[0].content.parts[0].text));
+    return mergeAi(plan, parseJsonLoose(data.candidates[0].content.parts[0].text));
   } catch { return plan; } // any AI failure falls back to the rule-based plan
 }
 
@@ -130,10 +137,10 @@ async function enhanceWithOpenAICompat(plan, v, { name, url, apiKey, model, fetc
       body: JSON.stringify({ model, temperature: 0.8, response_format: { type: 'json_object' }, messages: [{ role: 'user', content: aiPrompt(v) }] }),
       signal: AbortSignal.timeout(timeoutMs)
     });
-    if (!res.ok) return plan;
+    if (!res.ok) { console.error(`${name} AI call failed: HTTP ${res.status}`); return plan; }
     const data = await res.json();
-    return mergeAi(plan, JSON.parse(data.choices[0].message.content), name);
-  } catch { return plan; }
+    return mergeAi(plan, parseJsonLoose(data.choices[0].message.content), name);
+  } catch (e) { console.error(`${name} AI error: ${e.message}`); return plan; }
 }
 
 // Picks the first configured provider: Groq, then xAI Grok, then Gemini. None set = rules only.
@@ -144,4 +151,4 @@ function enhance(plan, v, env = process.env, fetchImpl = fetch) {
   return enhanceWithGemini(plan, v, { apiKey: env.GEMINI_API_KEY, model: env.GEMINI_MODEL || 'gemini-2.5-flash', fetchImpl });
 }
 
-module.exports = { validate, buildPlan, mergeAi, enhance, enhanceWithOpenAICompat, enhanceWithGemini, aiPrompt, TYPES };
+module.exports = { parseJsonLoose, validate, buildPlan, mergeAi, enhance, enhanceWithOpenAICompat, enhanceWithGemini, aiPrompt, TYPES };
