@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { validate, buildPlan, mergeAi, enhanceWithGemini, TYPES } = require('../planner');
+const { validate, buildPlan, mergeAi, enhanceWithGemini, enhanceWithOpenAICompat, enhance, TYPES } = require('../planner');
 
 const good = { type: 'wedding', budget: 1000000, guests: 200, date: '2027-02-14', currency: 'INR', city: 'Kolkata', theme: 'Marigold', notes: '' };
 const today = new Date('2026-10-21T00:00:00Z');
@@ -58,4 +58,20 @@ test('Gemini success replaces ideas; failure falls back safely', async () => {
   const boom = async () => { throw new Error('network'); };
   const p2 = await enhanceWithGemini(buildPlan(v, today), v, { apiKey: 'k', model: 'm', fetchImpl: boom });
   assert.equal(p2.source, 'rules');
+});
+
+test('Groq/Grok adapter sends bearer auth, merges ideas, and falls back on error', async () => {
+  const v = validate(good).value;
+  let seen;
+  const ok = async (url, opts) => { seen = { url, opts }; return { ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify({ ideas: ['X'], tip: 'T' }) } }] }) }; };
+  const p = await enhance(buildPlan(v, today), v, { GROQ_API_KEY: 'gk' }, ok);
+  assert.equal(p.source, 'groq');
+  assert.match(seen.url, /api\.groq\.com/);
+  assert.equal(seen.opts.headers.authorization, 'Bearer gk');
+  const x = await enhance(buildPlan(v, today), v, { XAI_API_KEY: 'xk' }, ok);
+  assert.equal(x.source, 'xai');
+  assert.match(seen.url, /api\.x\.ai/);
+  const bad = async () => ({ ok: false });
+  const f = await enhanceWithOpenAICompat(buildPlan(v, today), v, { name: 'groq', url: 'u', apiKey: 'k', model: 'm', fetchImpl: bad });
+  assert.equal(f.source, 'rules');
 });

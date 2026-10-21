@@ -2,7 +2,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { validate, buildPlan, enhanceWithGemini } = require('./planner');
+const { validate, buildPlan, enhance } = require('./planner');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, 'public');
@@ -47,7 +47,7 @@ const server = http.createServer(async (req, res) => {
     const { errors, value } = validate(body);
     if (errors.length) return send(res, 422, { errors });
     let plan = buildPlan(value);
-    plan = await enhanceWithGemini(plan, value, { apiKey: process.env.GEMINI_API_KEY, model: process.env.GEMINI_MODEL || 'gemini-2.5-flash' });
+    plan = await enhance(plan, value);
     return send(res, 200, plan);
   }
   send(res, 404, { error: 'Not found' });

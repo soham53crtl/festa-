@@ -52,7 +52,7 @@ function render(p) {
 
   nodes.push(el('h2', { textContent: 'Vendor checklist' }), checklist('vendors-' + p.summary.type, p.vendors.map((v) => v.name)));
   nodes.push(el('h2', { textContent: 'Ideas for you' }), el('ul', { className: 'ideas' }, p.ideas.map((i) => el('li', { textContent: i }))));
-  nodes.push(el('p', { className: 'src', textContent: p.source === 'gemini' ? 'Ideas personalised with Gemini.' : 'Ideas from the built-in planner.' }));
+  nodes.push(el('p', { className: 'src', textContent: p.source === 'rules' ? 'Ideas from the built-in planner.' : `Ideas personalised with ${{ gemini: 'Gemini', groq: 'Groq', xai: 'Grok' }[p.source] || 'AI'}.` }));
   const print = el('button', { type: 'button', className: 'ghost', textContent: 'Print or save as PDF' });
   print.addEventListener('click', () => window.print());
   nodes.push(print);

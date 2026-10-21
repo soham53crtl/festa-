@@ -11,15 +11,15 @@ Plans **weddings, birthdays and community events**: budget split, dated timeline
    - Timeline counted back from the event date; tasks already past are flagged **Do now**.
    - Vendor checklist per event type (ticks are saved in the browser).
    - Warnings for short lead time and low budget per guest (currency-scaled).
-3. If `GEMINI_API_KEY` is set, **Gemini** rewrites the ideas and adds a budget tip using the user's city, theme and notes. Output is parsed as JSON, type-checked and length-capped. On any AI failure the rule-based plan is returned, so the app always works.
+3. If `GROQ_API_KEY`, `XAI_API_KEY` (Grok) or `GEMINI_API_KEY` is set (checked in that order), the LLM rewrites the ideas and adds a budget tip using the user's city, theme and notes. Output is parsed as JSON, type-checked and length-capped. On any AI failure the rule-based plan is returned, so the app always works.
 
 ## Run
 ```bash
 npm test          # Node 18+, no dependencies to install
 npm start         # http://localhost:3000
-GEMINI_API_KEY=... npm start   # enable Gemini ideas
+GROQ_API_KEY=... npm start     # or XAI_API_KEY=... (Grok) / GEMINI_API_KEY=...
 ```
-Deploy: `Dockerfile` included (Cloud Run / Render). Set `GEMINI_API_KEY` as a secret env var.
+Deploy: **Vercel** (`api/plan.js` + `vercel.json`; static UI served from `public/`) or `Dockerfile` (Cloud Run / Render). Docker (Cloud Run / Render). Set one provider key as a secret env var.
 
 ## Design choices mapped to evaluation criteria
 - **Code quality:** zero dependencies, small modules (`planner.js` logic, `server.js` transport, `public/` UI).

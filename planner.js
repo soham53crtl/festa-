@@ -92,10 +92,10 @@ DATA: ${JSON.stringify({ type: v.type, guests: v.guests, budget: v.budget, curre
 }
 
 // Merge only well-formed, length-capped strings from the model.
-function mergeAi(plan, ai) {
+function mergeAi(plan, ai, source = 'gemini') {
   if (!ai || typeof ai !== 'object') return plan;
   const ideas = Array.isArray(ai.ideas) ? ai.ideas.filter((x) => typeof x === 'string').map((x) => clean(x, 200)).filter(Boolean).slice(0, 6) : [];
-  if (ideas.length) { plan.ideas = ideas; plan.source = 'gemini'; }
+  if (ideas.length) { plan.ideas = ideas; plan.source = source; }
   if (typeof ai.tip === 'string' && clean(ai.tip, 240)) plan.tip = clean(ai.tip, 240);
   return plan;
 }
@@ -115,4 +115,33 @@ async function enhanceWithGemini(plan, v, { apiKey, model, fetchImpl = fetch, ti
   } catch { return plan; } // any AI failure falls back to the rule-based plan
 }
 
-module.exports = { validate, buildPlan, mergeAi, enhanceWithGemini, aiPrompt, TYPES };
+// Groq and xAI (Grok) both expose OpenAI-compatible chat endpoints.
+const PROVIDERS = {
+  groq: { url: 'https://api.groq.com/openai/v1/chat/completions', key: 'GROQ_API_KEY', model: 'GROQ_MODEL', def: 'llama-3.3-70b-versatile' },
+  xai: { url: 'https://api.x.ai/v1/chat/completions', key: 'XAI_API_KEY', model: 'XAI_MODEL', def: 'grok-4' }
+};
+
+async function enhanceWithOpenAICompat(plan, v, { name, url, apiKey, model, fetchImpl = fetch, timeoutMs = 8000 }) {
+  if (!apiKey) return plan;
+  try {
+    const res = await fetchImpl(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({ model, temperature: 0.8, response_format: { type: 'json_object' }, messages: [{ role: 'user', content: aiPrompt(v) }] }),
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+    if (!res.ok) return plan;
+    const data = await res.json();
+    return mergeAi(plan, JSON.parse(data.choices[0].message.content), name);
+  } catch { return plan; }
+}
+
+// Picks the first configured provider: Groq, then xAI Grok, then Gemini. None set = rules only.
+function enhance(plan, v, env = process.env, fetchImpl = fetch) {
+  for (const [name, p] of Object.entries(PROVIDERS)) {
+    if (env[p.key]) return enhanceWithOpenAICompat(plan, v, { name, url: p.url, apiKey: env[p.key], model: env[p.model] || p.def, fetchImpl });
+  }
+  return enhanceWithGemini(plan, v, { apiKey: env.GEMINI_API_KEY, model: env.GEMINI_MODEL || 'gemini-2.5-flash', fetchImpl });
+}
+
+module.exports = { validate, buildPlan, mergeAi, enhance, enhanceWithOpenAICompat, enhanceWithGemini, aiPrompt, TYPES };
