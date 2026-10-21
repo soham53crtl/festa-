@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Festa – plan your wedding, birthday or community event</title>
+<meta name="description" content="Get a budget split, dated timeline, vendor checklist and personalised ideas for your event.">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<a class="skip" href="#plan">Skip to your plan</a>
+<header>
+  <h1>Festa</h1>
+  <p>Tell us about your event. Get a budget, a dated timeline, a vendor checklist and ideas that fit.</p>
+</header>
+<main>
+  <form id="form" novalidate aria-describedby="formerr">
+    <fieldset>
+      <legend>Your event</legend>
+      <label>Event type
+        <select name="type" required>
+          <option value="wedding">Wedding</option>
+          <option value="birthday">Birthday</option>
+          <option value="community">Community event</option>
+        </select>
+      </label>
+      <label>Event date <input type="date" name="date" required></label>
+      <label>Guests <input type="number" name="guests" min="1" max="5000" value="100" required inputmode="numeric"></label>
+      <label>Total budget <input type="number" name="budget" min="1000" value="500000" required inputmode="numeric"></label>
+      <label>Currency
+        <select name="currency"><option>INR</option><option>USD</option><option>EUR</option><option>GBP</option></select>
+      </label>
+      <label>City (optional) <input name="city" maxlength="60" autocomplete="address-level2"></label>
+      <label>Theme (optional) <input name="theme" maxlength="80" placeholder="e.g. marigold and brass"></label>
+      <label class="wide">Anything else? (optional) <textarea name="notes" maxlength="300" rows="3" placeholder="Vegetarian menu, outdoor, elderly guests…"></textarea></label>
+    </fieldset>
+    <p id="formerr" role="alert" class="err"></p>
+    <button type="submit">Build my plan</button>
+  </form>
+  <section id="plan" tabindex="-1" aria-live="polite" aria-busy="false"></section>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>
