@@ -29,6 +29,7 @@ flowchart LR
 ## Run
 ```bash
 npm test                      # Node 18+, no dependencies
+npm run lint                  # ESLint (fetched on demand, not a dependency)
 npm start                     # http://localhost:3000
 GROQ_API_KEY=... npm start    # or XAI_API_KEY / GEMINI_API_KEY
 ```
@@ -37,7 +38,8 @@ Deploy: Vercel (`api/plan.js`, `vercel.json`) or Docker. Copy `.env.example` for
 ## Structure
 | File | Role |
 |---|---|
-| `planner.js` | Validation, rule engine, AI adapters (pure logic) |
+| `planner.js` | Facade over `src/` (single import point) |
+| `src/events.js` · `validate.js` · `plan.js` · `ai.js` · `cache.js` | Event data · input validation · rule engine · LLM adapters · TTL cache |
 | `handler.js` | One request handler shared by both runtimes |
 | `server.js` / `api/plan.js` | Node server (rate limit, headers) / Vercel function |
 | `public/` | Accessible UI (no framework, no `innerHTML`) |
@@ -46,7 +48,7 @@ Deploy: Vercel (`api/plan.js`, `vercel.json`) or Docker. Copy `.env.example` for
 ## Evaluation criteria
 - **Code quality:** zero dependencies, pure logic separated from transport, one shared handler, no duplication.
 - **Security:** input sanitising, 8 KB body limit, per-IP rate limit on the Node server, strict CSP, API keys only from env, user text sent to the model as data, UI built with `textContent`.
-- **Efficiency:** rules run instantly; one optional AI call with an 8 s timeout.
+- **Efficiency:** rules run instantly; static files are gzipped once and served from memory; identical requests are cached for 10 min (one AI call per unique plan); one AI call with an 8 s timeout; rate-limit map is pruned.
 - **Testing:** unit and API tests for validation, budget maths, timeline, warnings, note rules, AI merge and fallback, provider adapters, and static accessibility checks; runs in CI.
 - **Accessibility:** labelled fields, `lang`, skip link, `aria-live` results, visible focus, text values beside every bar, reduced motion, responsive, printable.
 - **Problem alignment:** budgets, timelines, vendor checklists and personalised ideas for three event types.

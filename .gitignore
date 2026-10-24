@@ -3,6 +3,5 @@ node_modules/
 *.log
 
 .vercel/
-*.json.tmp
 g.json
 body.json
